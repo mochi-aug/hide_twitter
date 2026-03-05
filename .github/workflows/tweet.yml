@@ -31,7 +31,7 @@ jobs:
           ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
           ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-        run: python tweet_一日一秀和_抽選アップ_bot用_discord.py
+        run: python tweet_github.py
 
       - name: Commit updated data.json
         run: |
