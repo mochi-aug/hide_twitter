@@ -1,7 +1,7 @@
 name: Daily Noon Tweet
 
 on:
-schedule:
+    schedule:
     - cron: "55 2 * * *"
     - cron: "57 2 * * *"
     - cron: "59 2 * * *"
@@ -47,4 +47,5 @@ jobs:
           git diff --cached --quiet || git commit -m "Update data.json"
 
           git push
+
 
