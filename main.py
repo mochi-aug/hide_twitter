@@ -21,11 +21,7 @@ DATA_FILE = "data.json"
 START_DATE = date(2024, 6, 17)
 JST = ZoneInfo("Asia/Tokyo")
 
-now_jst = datetime.now(JST)
 
-# 12:00 ±3分だけ許可
-if not (11 <= now_jst.hour <= 12):
-    return
 def client_info():
     return tweepy.Client(
         bearer_token=BEARER_TOKEN,
@@ -54,6 +50,7 @@ def init_data(song_count: int):
         "weight_list": [10] * song_count,
         "flag_list": [0] * song_count,
         "sad_list": [0] * song_count,
+        "last_posted_date": "",
     }
 
 
@@ -68,7 +65,6 @@ def load_data(song_count: int):
     flag_list = data.get("flag_list", [])
     sad_list = data.get("sad_list", [])
 
-    # 曲数変更時の保険
     if not (len(weight_list) == len(flag_list) == len(sad_list) == song_count):
         return init_data(song_count)
 
@@ -76,14 +72,16 @@ def load_data(song_count: int):
         "weight_list": weight_list,
         "flag_list": flag_list,
         "sad_list": sad_list,
+        "last_posted_date": data.get("last_posted_date", ""),
     }
 
 
-def save_data(weight_list, flag_list, sad_list):
+def save_data(weight_list, flag_list, sad_list, last_posted_date=""):
     data = {
         "weight_list": weight_list,
         "flag_list": flag_list,
         "sad_list": sad_list,
+        "last_posted_date": last_posted_date,
     }
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
@@ -99,7 +97,6 @@ def advance_lists(song_list, weight_list, flag_list, sad_list, chosen_song, coun
             if sad_list[j] >= 5 and flag_list[j] == 0:
                 weight_list[j] += 2
 
-    # flag進行
     for j in range(len(song_list)):
         if 1 <= flag_list[j] <= 9:
             flag_list[j] += 1
@@ -109,7 +106,6 @@ def advance_lists(song_list, weight_list, flag_list, sad_list, chosen_song, coun
 
     idx = song_list.index(chosen_song)
 
-    # 特定曲が直近で出て weight=0 の場合の救済
     if weight_list[idx] == 0:
         weight_list[idx] = 10
         flag_list[idx] = 0
@@ -154,25 +150,36 @@ def choose_song(today):
 
 
 def should_run(mode: str, now_jst: datetime) -> bool:
-    # daily-noon workflow 用
     if mode == "daily":
-        # 6/4 は hourly workflow 側に任せる
         return not (now_jst.month == 6 and now_jst.day == 4)
 
-    # birthday hourly workflow 用
     if mode == "birthday":
         return now_jst.month == 6 and now_jst.day == 4
 
     return True
 
 
+def should_post_now(mode: str, now_jst: datetime, event_name: str) -> bool:
+    if event_name == "workflow_dispatch":
+        return False
+
+    if mode == "daily":
+        return now_jst.hour == 12 and now_jst.minute <= 5
+
+    if mode == "birthday":
+        return now_jst.month == 6 and now_jst.day == 4
+
+    return False
+
+
 def main():
     now_jst = datetime.now(JST)
     today_jst = now_jst.date()
     mode = os.environ.get("RUN_MODE", "daily")
+    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
 
     if not should_run(mode, now_jst):
-        print(f"skip: mode={mode}, jst={now_jst.isoformat()}")
+        print(f"skip by mode/date: mode={mode}, jst={now_jst.isoformat()}")
         return
 
     count = compute_count(today_jst)
@@ -182,6 +189,9 @@ def main():
     flag_list = data["flag_list"]
     sad_list = data["sad_list"]
 
+    last_posted_date = data.get("last_posted_date", "")
+    today_str = today_jst.isoformat()
+
     weight_list, flag_list, sad_list = advance_lists(
         song_list, weight_list, flag_list, sad_list, hide, count
     )
@@ -189,13 +199,19 @@ def main():
     print(f"JST now: {now_jst}")
     print(f"count: {count}")
     print(f"tweet: {hide}")
+    print(f"event_name: {event_name}")
 
-    create_tweet(hide)
-    discord_notify(f"今日の一日一秀和は\n{hide}\nでした")
+    if should_post_now(mode, now_jst, event_name):
+        if last_posted_date == today_str:
+            print("Already posted today. Skip duplicate.")
+            return
 
-    save_data(weight_list, flag_list, sad_list)
+        create_tweet(hide)
+        discord_notify(f"今日の一日一秀和は\n{hide}\nでした")
+        save_data(weight_list, flag_list, sad_list, today_str)
+    else:
+        print("Skip posting.")
 
 
 if __name__ == "__main__":
     main()
-
