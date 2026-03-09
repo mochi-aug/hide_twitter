@@ -1,7 +1,7 @@
 name: Daily Noon Tweet
 
 on:
-    schedule:
+  schedule:
     - cron: "55 2 * * *"
     - cron: "57 2 * * *"
     - cron: "59 2 * * *"
@@ -15,6 +15,7 @@ permissions:
 jobs:
   tweet:
     runs-on: ubuntu-latest
+
     env:
       BEARER_TOKEN: ${{ secrets.BEARER_TOKEN }}
       API_KEY: ${{ secrets.API_KEY }}
@@ -23,6 +24,7 @@ jobs:
       ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
       WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
       RUN_MODE: daily
+      GITHUB_EVENT_NAME: ${{ github.event_name }}
 
     steps:
       - name: Checkout
@@ -33,6 +35,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
@@ -45,7 +48,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data.json
           git diff --cached --quiet || git commit -m "Update data.json"
-
           git push
-
-
