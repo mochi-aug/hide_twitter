@@ -21,7 +21,11 @@ DATA_FILE = "data.json"
 START_DATE = date(2024, 6, 17)
 JST = ZoneInfo("Asia/Tokyo")
 
+now_jst = datetime.now(JST)
 
+# 12:00 ±3分だけ許可
+if not (11 <= now_jst.hour <= 12):
+    return
 def client_info():
     return tweepy.Client(
         bearer_token=BEARER_TOKEN,
@@ -194,3 +198,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
