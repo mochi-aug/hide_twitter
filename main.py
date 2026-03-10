@@ -164,7 +164,7 @@ def should_post_now(mode: str, now_jst: datetime, event_name: str) -> bool:
         return False
 
     if mode == "daily":
-        return now_jst.hour == 12 and now_jst.minute <= 5
+        return now_jst.hour == 11
 
     if mode == "birthday":
         return now_jst.month == 6 and now_jst.day == 4
@@ -215,3 +215,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
