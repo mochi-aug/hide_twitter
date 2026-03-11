@@ -200,19 +200,23 @@ def main():
     print(f"count: {count}")
     print(f"tweet: {hide}")
     print(f"event_name: {event_name}")
+    
+    # 手動実行なら投稿しない
+    if event_name == "workflow_dispatch":
+        print("Manual run detected. Skip posting.")
+        return
+    
+    # 同じ日に投稿済みならスキップ
+    if last_posted_date == today_str:
+        print("Already posted today. Skip duplicate.")
+        return
 
-    if should_post_now(mode, now_jst, event_name):
-        if last_posted_date == today_str:
-            print("Already posted today. Skip duplicate.")
-            return
-
-        create_tweet(hide)
-        discord_notify(f"今日の一日一秀和は\n{hide}\nでした")
-        save_data(weight_list, flag_list, sad_list, today_str)
-    else:
-        print("Skip posting.")
+    create_tweet(hide)
+    discord_notify(f"今日の一日一秀和は\n{hide}\nでした")
+    save_data(weight_list, flag_list, sad_list, today_str)
 
 
 if __name__ == "__main__":
     main()
+
 
